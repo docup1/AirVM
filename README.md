@@ -42,7 +42,7 @@ typedef struct {
     int running;                   // Флаг выполнения
     uint32_t program_size;         // Размер программы
 } VM;
-
+```
 ---
 
 ## Поддерживаемые операции
