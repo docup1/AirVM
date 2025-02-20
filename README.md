@@ -76,7 +76,7 @@ typedef struct {
 | `0x22`   | `MUL`        | Умножение: `dest = reg1 * reg2`.           | `MUL dest reg1 reg2` (3 байта) |
 | `0x23`   | `DIV`        | Деление: `dest = reg1 / reg2`.             | `DIV dest reg1 reg2` (3 байта) |
 | `0x24`   | `AND`        | Побитовое И: `dest = reg1 & reg2`.         | `AND dest reg1 reg2` (3 байта) |
-| `0x25`   | `OR`         | Побитовое ИЛИ: `dest = reg1 | reg2`.       | `OR dest reg1 reg2` (3 байта)  |
+| `0x25`   | `OR`         | Побитовое ИЛИ: `dest = reg1 *\| reg2`.       | `OR dest reg1 reg2` (3 байта)  |
 | `0x26`   | `XOR`        | Побитовое XOR: `dest = reg1 ^ reg2`.       | `XOR dest reg1 reg2` (3 байта) |
 | `0x27`   | `NOT`        | Побитовое НЕ: `dest = ~reg`.               | `NOT dest reg` (2 байта)       |
 | `0x28`   | `CMP`        | Сравнение `reg1` и `reg2`, установка флагов.| `CMP reg1 reg2` (2 байта)      |
