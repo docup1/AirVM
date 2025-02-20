@@ -1,0 +1,3 @@
+/Users/docup/CLionProjects/untitled/cmake-build-debug/CMakeFiles/untitled.dir
+/Users/docup/CLionProjects/untitled/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/docup/CLionProjects/untitled/cmake-build-debug/CMakeFiles/rebuild_cache.dir
