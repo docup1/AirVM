@@ -107,7 +107,10 @@ typedef struct {
    gcc vm.c -o vm
    ```
 2. Подготовьте программу в виде бинарного файла (например, `program.bin`).
-3. Запустите VM с программой:
+   ```bash
+   printf "\x10\x00\x10\x00\x00\x00\x00\x00\x00\x00\x50\x00\x00\x00\x00\x01\x2A\x00\x00\x00" > program.bin
+   ```
+4. Запустите VM с программой:
    ```bash
    ./vm program.bin
    ```
