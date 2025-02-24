@@ -8,41 +8,43 @@
 extern char **environ;
 
 // Константы
-#define MEM_SIZE 65536          // Размер памяти (64 КБ)
-#define STACK_SIZE 1024         // Размер стека
-#define NUM_REGS 8              // Количество регистров
-#define MAX_STR_LEN 1024        // Максимальная длина строки
+#define MEM_SIZE 65536         // Размер памяти (64 КБ)
+#define STACK_SIZE 1024        // Размер стека
+#define NUM_REGS 32            // Количество регистров (R0-R31)
+#define MAX_STR_LEN 1024       // Максимальная длина строки
 
 // Коды операций
-#define OP_NOP      0x00        // Нет операции
-#define OP_HALT     0x01        // Остановка выполнения
-#define OP_JUMP     0x02        // Переход
-#define OP_CALL     0x03        // Вызов подпрограммы
-#define OP_RET      0x04        // Возврат из подпрограммы
-#define OP_IF       0x05        // Условный переход
-#define OP_LOAD     0x10        // Загрузка из памяти
-#define OP_STORE    0x11        // Сохранение в память
-#define OP_MOVE     0x12        // Перемещение между регистрами
-#define OP_PUSH     0x13        // Поместить в стек
-#define OP_POP      0x14        // Извлечь из стека
-#define OP_ADD      0x20        // Сложение
-#define OP_SUB      0x21        // Вычитание
-#define OP_MUL      0x22        // Умножение
-#define OP_DIV      0x23        // Деление
-#define OP_AND      0x24        // Логическое И
-#define OP_OR       0x25        // Логическое ИЛИ
-#define OP_XOR      0x26        // Логическое исключающее ИЛИ
-#define OP_NOT      0x27        // Логическое НЕ
-#define OP_CMP      0x28        // Сравнение
-#define OP_FS_LIST  0x34        // Список файлов
-#define OP_ENV_LIST 0x42        // Список переменных окружения
-#define OP_PRINT    0x50        // Вывод значения
-#define OP_INPUT    0x51        // Ввод значения
+#define OP_NOP      0x00       // Нет операции
+#define OP_HALT     0x01       // Остановка выполнения
+#define OP_JUMP     0x02       // Переход
+#define OP_CALL     0x03       // Вызов подпрограммы
+#define OP_RET      0x04       // Возврат из подпрограммы
+#define OP_IF       0x05       // Условный переход
+#define OP_LOAD     0x10       // Загрузка из памяти
+#define OP_STORE    0x11       // Сохранение в память
+#define OP_MOVE     0x12       // Перемещение между регистрами
+#define OP_PUSH     0x13       // Поместить в стек
+#define OP_POP      0x14       // Извлечь из стека
+#define OP_LOADI    0x15       // Загрузка немедленного значения
+#define OP_ADD      0x20       // Сложение
+#define OP_SUB      0x21       // Вычитание
+#define OP_MUL      0x22       // Умножение
+#define OP_DIV      0x23       // Деление
+#define OP_AND      0x24       // Логическое И
+#define OP_OR       0x25       // Логическое ИЛИ
+#define OP_XOR      0x26       // Логическое исключающее ИЛИ
+#define OP_NOT      0x27       // Логическое НЕ
+#define OP_CMP      0x28       // Сравнение
+#define OP_FS_LIST  0x34       // Список файлов
+#define OP_ENV_LIST 0x42       // Список переменных окружения
+#define OP_PRINT    0x50       // Вывод значения (из регистра)
+#define OP_INPUT    0x51       // Ввод значения
+#define OP_PRINTS   0x52       // Вывод строки из памяти
 
 // Структура виртуальной машины
 typedef struct {
     uint8_t memory[MEM_SIZE];      // Память для байт-кода и данных
-    uint32_t registers[NUM_REGS];  // Регистры R0-R7
+    uint32_t registers[NUM_REGS];  // Регистры R0-R31
     uint32_t stack[STACK_SIZE];    // Стек
     uint32_t sp;                   // Указатель стека
     uint32_t ip;                   // Указатель инструкций
@@ -194,7 +196,6 @@ void vm_run(VM* vm) {
                 break;
 
             case OP_IF: {
-                // Читаем маску флагов и адрес перехода
                 uint8_t flag_mask = read_byte(vm);
                 uint32_t addr = read_uint32(vm);
                 if (vm->flags & flag_mask)
@@ -203,10 +204,10 @@ void vm_run(VM* vm) {
             }
 
             case OP_LOAD: {
-                // Читаем регистр-назначения и адрес в памяти
+                // Загрузка значения из памяти: R[reg] = *(uint32_t*)(memory + addr)
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
-                    printf("Invalid register R%d\n", reg);
+                    printf("Invalid register R%d in LOAD\n", reg);
                     vm->running = 0;
                     break;
                 }
@@ -215,11 +216,24 @@ void vm_run(VM* vm) {
                 break;
             }
 
-            case OP_STORE: {
-                // Читаем регистр-источник и адрес памяти
+            case OP_LOADI: {
+                // Загрузка немедленного значения: R[reg] = immediate
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
-                    printf("Invalid register R%d\n", reg);
+                    printf("Invalid register R%d in LOADI\n", reg);
+                    vm->running = 0;
+                    break;
+                }
+                uint32_t immediate = read_uint32(vm);
+                vm->registers[reg] = immediate;
+                break;
+            }
+
+            case OP_STORE: {
+                // Сохранение значения регистра в память: *(uint32_t*)(memory + addr) = R[reg]
+                uint8_t reg = read_byte(vm);
+                if (reg >= NUM_REGS) {
+                    printf("Invalid register R%d in STORE\n", reg);
                     vm->running = 0;
                     break;
                 }
@@ -242,7 +256,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_PUSH: {
-                // Помещаем значение регистра на стек
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
                     printf("Invalid register R%d in PUSH\n", reg);
@@ -259,7 +272,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_POP: {
-                // Извлекаем значение из стека в регистр
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
                     printf("Invalid register R%d in POP\n", reg);
@@ -276,7 +288,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_ADD: {
-                // Сложение: dest = reg1 + reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -290,7 +301,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_SUB: {
-                // Вычитание: dest = reg1 - reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -304,7 +314,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_MUL: {
-                // Умножение: dest = reg1 * reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -318,7 +327,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_DIV: {
-                // Деление: dest = reg1 / reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -337,7 +345,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_AND: {
-                // Побитовое И: dest = reg1 & reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -351,7 +358,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_OR: {
-                // Побитовое ИЛИ: dest = reg1 | reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -365,7 +371,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_XOR: {
-                // Побитовое исключающее ИЛИ: dest = reg1 ^ reg2
                 uint8_t dest = read_byte(vm);
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
@@ -379,7 +384,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_NOT: {
-                // Логическое НЕ: dest = ~reg
                 uint8_t dest = read_byte(vm);
                 uint8_t reg  = read_byte(vm);
                 if (dest >= NUM_REGS || reg >= NUM_REGS) {
@@ -392,7 +396,6 @@ void vm_run(VM* vm) {
             }
 
             case OP_CMP: {
-                // Сравнение: сравниваем reg1 и reg2 и выставляем флаги
                 uint8_t reg1 = read_byte(vm);
                 uint8_t reg2 = read_byte(vm);
                 if (reg1 >= NUM_REGS || reg2 >= NUM_REGS) {
@@ -427,7 +430,7 @@ void vm_run(VM* vm) {
             case OP_PRINT: {
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
-                    printf("Invalid register R%d\n", reg);
+                    printf("Invalid register R%d in PRINT\n", reg);
                     vm->running = 0;
                     break;
                 }
@@ -435,8 +438,19 @@ void vm_run(VM* vm) {
                 break;
             }
 
+            case OP_PRINTS: {
+                // Вывод строки из памяти. Читаем адрес (4 байта) и выводим строку.
+                uint32_t addr = read_uint32(vm);
+                if (addr >= MEM_SIZE) {
+                    printf("Error: Invalid memory address for PRINTS\n");
+                    vm->running = 0;
+                    break;
+                }
+                printf("%s", (char*)&vm->memory[addr]);
+                break;
+            }
+
             case OP_INPUT: {
-                // Чтение числа с клавиатуры и запись в регистр
                 uint8_t reg = read_byte(vm);
                 if (reg >= NUM_REGS) {
                     printf("Invalid register R%d in INPUT\n", reg);
@@ -444,7 +458,6 @@ void vm_run(VM* vm) {
                     break;
                 }
                 int input;
-                printf("Input: ");
                 if (scanf("%d", &input) != 1) {
                     printf("Error reading input.\n");
                     vm->running = 0;
@@ -463,11 +476,12 @@ void vm_run(VM* vm) {
 }
 
 // Основная функция
+#include <time.h>
+
 int main(int argc, char *argv[]) {
     VM vm;
     vm_init(&vm);
 
-    // Загрузка программы из файла
     if (argc > 1) {
         FILE *f = fopen(argv[1], "rb");
         if (!f) {
@@ -491,7 +505,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Запуск виртуальной машины
+    clock_t start_time = clock(); // Засекаем время начала выполнения
     vm_run(&vm);
+    clock_t end_time = clock(); // Засекаем время окончания
+
+    double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    printf("Execution time: %.6f seconds\n", elapsed_time);
+
     return 0;
 }
+
