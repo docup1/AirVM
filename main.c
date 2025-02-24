@@ -434,7 +434,7 @@ void vm_run(VM* vm) {
                     vm->running = 0;
                     break;
                 }
-                printf("%d\n", vm->registers[reg]);
+                printf("%d", vm->registers[reg]);
                 break;
             }
 
@@ -510,7 +510,7 @@ int main(int argc, char *argv[]) {
     clock_t end_time = clock(); // Засекаем время окончания
 
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-    printf("Execution time: %.6f seconds\n", elapsed_time);
+    printf("\nExecution time: %.6f seconds\n", elapsed_time);
 
     return 0;
 }
